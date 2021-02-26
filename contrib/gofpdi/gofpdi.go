@@ -45,7 +45,7 @@ func (i *Importer) ImportAllPages(f gofpdiPdf, sourceFile string, box string) ([
 	templateIDs := make([]int, i.fpdi.GetNumPages())
 
 	// get template ids for every page
-	for n := 1; n <= i.fpdi.GetNumPages(); n++ {
+	for n := 1; n < i.fpdi.GetNumPages(); n++ {
 		tID, err := i.getTemplateID(f, n, box)
 		if err != nil {
 			return nil, err
@@ -79,7 +79,7 @@ func (i *Importer) ImportAllPagesFromStream(f gofpdiPdf, rs *io.ReadSeeker, box 
 	templateIDs := make([]int, i.fpdi.GetNumPages())
 
 	// get template ids for every page
-	for n := 1; n <= i.fpdi.GetNumPages(); n++ {
+	for n := 1; n < i.fpdi.GetNumPages(); n++ {
 		tID, err := i.getTemplateID(f, n, box)
 		if err != nil {
 			return nil, err
