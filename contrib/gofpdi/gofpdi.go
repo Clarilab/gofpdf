@@ -1,5 +1,5 @@
 /*
-Package gofpdi wraps the gofpdi PDF library to import existing PDFs as templates. See github.com/phpdave11/gofpdi
+Package gofpdi wraps the gofpdi PDF library to import existing PDFs as templates. See github.com/Clarilab/gofpdi
 for further information and examples.
 
 Users should call NewImporter() to obtain their own Importer instance to work with.
@@ -9,7 +9,7 @@ however that use of the default Importer is not thread safe.
 package gofpdi
 
 import (
-	realgofpdi "github.com/phpdave11/gofpdi"
+	realgofpdi "github.com/Clarilab/gofpdi"
 	"io"
 )
 
@@ -35,30 +35,80 @@ func NewImporter() *Importer {
 	}
 }
 
+// ImportAllPages imports a whole PDF file with the specified box (/MediaBox,
+// /TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a slice template ids that can
+// be used with UseImportedTemplate to draw the template onto the page.
+func (i *Importer) ImportAllPages(f gofpdiPdf, sourceFile string, box string) ([]int, error) {
+	// Set source file for fpdi
+	i.fpdi.SetSourceFile(sourceFile)
+
+	templateIDs := make([]int, i.fpdi.GetNumPages())
+
+	// get template ids for every page
+	for n := 1; n <= i.fpdi.GetNumPages(); n++ {
+		tID, err := i.getTemplateID(f, n, box)
+		if err != nil {
+			return nil, err
+		}
+
+		templateIDs[n] = tID
+	}
+
+	// return template ids
+	return templateIDs, nil
+}
+
 // ImportPage imports a page of a PDF file with the specified box (/MediaBox,
 // /TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a template id that can
 // be used with UseImportedTemplate to draw the template onto the page.
-func (i *Importer) ImportPage(f gofpdiPdf, sourceFile string, pageno int, box string) int {
+func (i *Importer) ImportPage(f gofpdiPdf, sourceFile string, pageno int, box string) (int, error) {
 	// Set source file for fpdi
 	i.fpdi.SetSourceFile(sourceFile)
 	// return template id
 	return i.getTemplateID(f, pageno, box)
 }
 
+// ImportAllPagesFromStream imports a whole PDF with the specified box
+// (/MediaBox, TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a slice of template ids
+// that can be used with UseImportedTemplate to draw the template onto the
+// page.
+func (i *Importer) ImportAllPagesFromStream(f gofpdiPdf, rs *io.ReadSeeker, box string) ([]int, error) {
+	// Set source stream for fpdi
+	i.fpdi.SetSourceStream(rs)
+
+	templateIDs := make([]int, i.fpdi.GetNumPages())
+
+	// get template ids for every page
+	for n := 1; n <= i.fpdi.GetNumPages(); n++ {
+		tID, err := i.getTemplateID(f, n, box)
+		if err != nil {
+			return nil, err
+		}
+
+		templateIDs[n] = tID
+	}
+
+	// return template ids
+	return templateIDs, nil
+}
+
 // ImportPageFromStream imports a page of a PDF with the specified box
 // (/MediaBox, TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a template id
 // that can be used with UseImportedTemplate to draw the template onto the
 // page.
-func (i *Importer) ImportPageFromStream(f gofpdiPdf, rs *io.ReadSeeker, pageno int, box string) int {
+func (i *Importer) ImportPageFromStream(f gofpdiPdf, rs *io.ReadSeeker, pageno int, box string) (int, error) {
 	// Set source stream for fpdi
 	i.fpdi.SetSourceStream(rs)
 	// return template id
 	return i.getTemplateID(f, pageno, box)
 }
 
-func (i *Importer) getTemplateID(f gofpdiPdf, pageno int, box string) int {
+func (i *Importer) getTemplateID(f gofpdiPdf, pageno int, box string) (int, error) {
 	// Import page
-	tpl := i.fpdi.ImportPage(pageno, box)
+	tpl, err := i.fpdi.ImportPage(pageno, box)
+	if err != nil {
+		return -1, err
+	}
 
 	// Import objects into current pdf document
 	// Unordered means that the objects will be returned with a sha1 hash instead of an integer
@@ -82,7 +132,7 @@ func (i *Importer) getTemplateID(f gofpdiPdf, pageno int, box string) int {
 	// Import gofpdi object hashes and their positions into gopdf
 	f.ImportObjPos(importedObjPos)
 
-	return tpl
+	return tpl, nil
 }
 
 // UseImportedTemplate draws the template onto the page at x,y. If w is 0, the
@@ -111,17 +161,34 @@ var fpdi = NewImporter()
 // /TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a template id that can
 // be used with UseImportedTemplate to draw the template onto the page.
 // Note: This uses the default Importer. Call NewImporter() to obtain a custom Importer.
-func ImportPage(f gofpdiPdf, sourceFile string, pageno int, box string) int {
+func ImportPage(f gofpdiPdf, sourceFile string, pageno int, box string) (int, error) {
 	return fpdi.ImportPage(f, sourceFile, pageno, box)
 }
 
+// ImportAllPages imports a whole PDF file with the specified box (/MediaBox,
+// /TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a slice of template ids that can
+// be used with UseImportedTemplate to draw the template onto the page.
+// Note: This uses the default Importer. Call NewImporter() to obtain a custom Importer.
+func ImportAllPages(f gofpdiPdf, sourceFile string, box string) ([]int, error) {
+	return fpdi.ImportAllPages(f, sourceFile, box)
+}
+
 // ImportPageFromStream imports a page of a PDF with the specified box
+// (/MediaBox, TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a slice of template ids
+// that can be used with UseImportedTemplate to draw the template onto the
+// page.
+// Note: This uses the default Importer. Call NewImporter() to obtain a custom Importer.
+func ImportPageFromStream(f gofpdiPdf, rs *io.ReadSeeker, pageno int, box string) (int, error) {
+	return fpdi.ImportPageFromStream(f, rs, pageno, box)
+}
+
+// ImportAllPagesFromStream imports a whole PDF with the specified box
 // (/MediaBox, TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a template id
 // that can be used with UseImportedTemplate to draw the template onto the
 // page.
 // Note: This uses the default Importer. Call NewImporter() to obtain a custom Importer.
-func ImportPageFromStream(f gofpdiPdf, rs *io.ReadSeeker, pageno int, box string) int {
-	return fpdi.ImportPageFromStream(f, rs, pageno, box)
+func ImportAllPagesFromStream(f gofpdiPdf, rs *io.ReadSeeker, box string) ([]int, error) {
+	return fpdi.ImportAllPagesFromStream(f, rs, box)
 }
 
 // UseImportedTemplate draws the template onto the page at x,y. If w is 0, the
