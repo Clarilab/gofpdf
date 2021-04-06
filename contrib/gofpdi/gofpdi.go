@@ -42,16 +42,16 @@ func (i *Importer) ImportAllPages(f gofpdiPdf, sourceFile string, box string) ([
 	// Set source file for fpdi
 	i.fpdi.SetSourceFile(sourceFile)
 
-	templateIDs := make([]int, i.fpdi.GetNumPages())
+	templateIDs := make([]int, 0, i.fpdi.GetNumPages())
 
 	// get template ids for every page
-	for n := 1; n < i.fpdi.GetNumPages(); n++ {
+	for n := 1; n <= i.fpdi.GetNumPages(); n++ {
 		tID, err := i.getTemplateID(f, n, box)
 		if err != nil {
 			return nil, err
 		}
 
-		templateIDs[n] = tID
+		templateIDs = append(templateIDs, tID)
 	}
 
 	// return template ids
