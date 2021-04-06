@@ -76,16 +76,16 @@ func (i *Importer) ImportAllPagesFromStream(f gofpdiPdf, rs *io.ReadSeeker, box 
 	// Set source stream for fpdi
 	i.fpdi.SetSourceStream(rs)
 
-	templateIDs := make([]int, i.fpdi.GetNumPages())
+	templateIDs := make([]int, 0, i.fpdi.GetNumPages())
 
 	// get template ids for every page
-	for n := 1; n < i.fpdi.GetNumPages(); n++ {
+	for n := 1; n <= i.fpdi.GetNumPages(); n++ {
 		tID, err := i.getTemplateID(f, n, box)
 		if err != nil {
 			return nil, err
 		}
 
-		templateIDs[n] = tID
+		templateIDs = append(templateIDs, tID)
 	}
 
 	// return template ids
